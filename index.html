@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Fiszki • Angielski</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0d0d0f;
+            --surface: #161618;
+            --surface2: #1e1e22;
+            --border: #2a2a2f;
+            --border2: #363640;
+            --text: #f0f0f4;
+            --text2: #8888a0;
+            --text3: #4a4a5e;
+            --accent: #7c6cfc;
+            --accent2: #a598ff;
+            --green: #3ddc84;
+            --green-dim: #1a3d2c;
+            --red: #ff5f5f;
+            --red-dim: #3d1010;
+            --card-back-1: #2a1f6e;
+            --card-back-2: #1a1240;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Syne', sans-serif;
+            min-height: 100dvh;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed; inset: 0;
+            background-image:
+                linear-gradient(var(--border) 1px, transparent 1px),
+                linear-gradient(90deg, var(--border) 1px, transparent 1px);
+            background-size: 40px 40px;
+            opacity: 0.25; pointer-events: none; z-index: 0;
+        }
+
+        .app {
+            position: relative; z-index: 1;
+            max-width: 480px; margin: 0 auto;
+            padding: 20px 16px 40px;
+            min-height: 100dvh;
+        }
+
+        /* Header */
+        .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; }
+        .header-left h1 {
+            font-size: clamp(26px, 7vw, 34px); font-weight: 800; letter-spacing: -1px;
+            background: linear-gradient(135deg, var(--text) 40%, var(--accent2));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        }
+        .header-left p { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--text2); margin-top: 4px; letter-spacing: 0.5px; }
+        .header-btns { display: flex; gap: 8px; margin-top: 4px; }
+        .btn-icon {
+            width: 40px; height: 40px; background: var(--surface); border: 1px solid var(--border);
+            border-radius: 12px; display: flex; align-items: center; justify-content: center;
+            cursor: pointer; font-size: 15px; color: var(--text2); transition: all 0.15s; user-select: none;
+        }
+        .btn-icon:active { transform: scale(0.92); background: var(--surface2); }
+
+        /* Card */
+        .card-wrap {
+            perspective: 1200px; height: clamp(210px, 52vw, 270px);
+            margin-bottom: 20px; cursor: pointer; position: relative;
+        }
+        .card-inner {
+            width: 100%; height: 100%; transform-style: preserve-3d;
+            transition: transform 0.55s cubic-bezier(0.23,1,0.32,1);
+        }
+        .card-wrap.flipped .card-inner { transform: rotateY(180deg); }
+        .card-face {
+            position: absolute; inset: 0; border-radius: 20px;
+            backface-visibility: hidden; -webkit-backface-visibility: hidden;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            padding: 24px; border: 1px solid var(--border);
+        }
+        .card-front-face { background: var(--surface); }
+        .card-back-face {
+            background: linear-gradient(145deg, var(--card-back-1), var(--card-back-2));
+            border-color: #3d2fa0; transform: rotateY(180deg);
+        }
+        .card-label { font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--text3); margin-bottom: 12px; }
+        .card-back-face .card-label { color: #6b5fc0; }
+        .card-word { font-size: clamp(20px, 5.5vw, 32px); font-weight: 700; text-align: center; line-height: 1.25; letter-spacing: -0.5px; }
+        .card-hint { position: absolute; bottom: 14px; font-family: 'DM Mono', monospace; font-size: 10px; color: var(--text3); letter-spacing: 1px; }
+
+        /* coloured left stripe showing status */
+        .card-stripe {
+            position: absolute; left: 0; top: 16px; bottom: 16px; width: 4px;
+            border-radius: 0 3px 3px 0; opacity: 0; transition: opacity 0.25s;
+        }
+        .card-wrap.known    .card-stripe { background: var(--green); opacity: 1; }
+        .card-wrap.notknown .card-stripe { background: var(--red);   opacity: 1; }
+
+        /* Controls */
+        .controls { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; gap: 8px; }
+        .btn-nav {
+            width: 50px; height: 50px; background: var(--surface); border: 1px solid var(--border);
+            border-radius: 16px; display: flex; align-items: center; justify-content: center;
+            cursor: pointer; font-size: 20px; color: var(--text2);
+            transition: all 0.15s; flex-shrink: 0; user-select: none;
+        }
+        .btn-nav:active { transform: scale(0.9); background: var(--surface2); }
+        .controls-center { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+        .counter { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--text2); }
+
+        .action-btns { display: flex; gap: 8px; width: 100%; justify-content: center; }
+        .btn-action {
+            flex: 1; max-width: 130px;
+            display: flex; align-items: center; justify-content: center; gap: 5px;
+            padding: 10px 10px; border-radius: 14px; border: 1px solid var(--border2);
+            background: transparent; color: var(--text2);
+            font-family: 'Syne', sans-serif; font-size: 12px; font-weight: 700;
+            cursor: pointer; transition: all 0.2s; user-select: none;
+        }
+        .btn-action:active { transform: scale(0.95); }
+        .btn-action.known.active   { background: var(--green-dim); border-color: var(--green); color: var(--green); }
+        .btn-action.notknown.active{ background: var(--red-dim);   border-color: var(--red);   color: var(--red); }
+
+        /* Progress */
+        .progress-track { height: 3px; background: var(--surface2); border-radius: 99px; overflow: hidden; margin-bottom: 20px; }
+        .progress-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2)); border-radius: 99px; transition: width 0.4s cubic-bezier(0.23,1,0.32,1); }
+
+        /* Stats */
+        .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 24px; }
+        .stat { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 14px 8px; text-align: center; }
+        .stat.clickable { cursor: pointer; transition: border-color 0.2s, transform 0.15s; }
+        .stat.clickable:hover  { border-color: var(--border2); }
+        .stat.clickable:active { transform: scale(0.96); }
+        .stat-val { font-size: 22px; font-weight: 800; letter-spacing: -0.5px; }
+        .stat-val.green  { color: var(--green); }
+        .stat-val.red    { color: var(--red); }
+        .stat-val.purple { color: var(--accent2); }
+        .stat-lbl { font-family: 'DM Mono', monospace; font-size: 9px; color: var(--text3); letter-spacing: 1px; text-transform: uppercase; margin-top: 3px; }
+        .stat-tap { font-family: 'DM Mono', monospace; font-size: 8px; color: var(--text3); letter-spacing: 0.5px; margin-top: 2px; opacity: 0.6; }
+
+        /* All-words list */
+        .list-section { display: none; }
+        .list-section.open { display: block; }
+        .list-header { font-size: 13px; font-weight: 700; color: var(--text2); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 14px; font-family: 'DM Mono', monospace; }
+        .vocab-list { display: flex; flex-direction: column; gap: 8px; max-height: 60dvh; overflow-y: auto; padding-right: 4px; }
+        .vocab-list::-webkit-scrollbar { width: 3px; }
+        .vocab-list::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 99px; }
+        .vocab-item {
+            background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+            padding: 12px 14px; display: flex; justify-content: space-between; align-items: center; cursor: pointer;
+        }
+        .vocab-item.known    { border-color: #2a5c3d; background: #0f1f17; }
+        .vocab-item.notknown { border-color: #5c1a1a; background: #1f0f0f; }
+        .vocab-item:active { opacity: 0.7; }
+        .vocab-en { font-size: 14px; font-weight: 600; }
+        .vocab-pl { font-size: 11px; color: var(--text2); margin-top: 2px; font-family: 'DM Mono', monospace; }
+        .vocab-item-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; margin-left: 10px; }
+        .vocab-tag { font-size: 10px; padding: 3px 8px; border-radius: 6px; font-family: 'DM Mono', monospace; }
+        .vocab-tag.known    { background: var(--green-dim); color: var(--green); border: 1px solid var(--green); }
+        .vocab-tag.notknown { background: var(--red-dim);   color: var(--red);   border: 1px solid var(--red); }
+        .go-btn { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--text3); background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 5px 10px; cursor: pointer; white-space: nowrap; }
+        .go-btn:active { background: var(--border); }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.88);
+            backdrop-filter: blur(6px); z-index: 200;
+            display: flex; flex-direction: column;
+            opacity: 0; pointer-events: none; transition: opacity 0.25s;
+        }
+        .modal-overlay.open { opacity: 1; pointer-events: all; }
+        .modal {
+            background: var(--surface); border: 1px solid var(--border2);
+            border-radius: 24px 24px 0 0; margin-top: auto; max-height: 92dvh;
+            display: flex; flex-direction: column;
+            transform: translateY(40px); transition: transform 0.3s cubic-bezier(0.23,1,0.32,1);
+            overflow: hidden;
+        }
+        .modal-overlay.open .modal { transform: translateY(0); }
+
+        .modal-header { display: flex; justify-content: space-between; align-items: flex-start; padding: 18px 20px 14px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+        .modal-title { font-size: 19px; font-weight: 800; letter-spacing: -0.5px; }
+        .modal-title.green { color: var(--green); }
+        .modal-title.red   { color: var(--red); }
+        .modal-subtitle { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--text3); margin-top: 3px; letter-spacing: 1px; }
+        .modal-close { width: 34px; height: 34px; background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 16px; color: var(--text2); flex-shrink: 0; }
+        .modal-close:active { transform: scale(0.9); }
+
+        .modal-tabs { display: flex; gap: 4px; padding: 10px 16px 0; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+        .modal-tab { padding: 8px 16px; border-radius: 10px 10px 0 0; font-family: 'DM Mono', monospace; font-size: 11px; color: var(--text3); cursor: pointer; letter-spacing: 0.5px; border: 1px solid transparent; border-bottom: none; margin-bottom: -1px; transition: all 0.15s; }
+        .modal-tab.active { background: var(--surface2); border-color: var(--border); border-bottom-color: var(--surface2); color: var(--text); }
+
+        .modal-body { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
+        .tab-pane { display: none; flex-direction: column; flex: 1; overflow: hidden; }
+        .tab-pane.active { display: flex; }
+
+        /* Study pane */
+        .study-pane { padding: 18px; gap: 14px; overflow-y: auto; }
+        .study-empty { text-align: center; padding: 48px 20px; color: var(--text3); font-family: 'DM Mono', monospace; font-size: 12px; line-height: 2.2; white-space: pre-line; }
+        .study-card-wrap { perspective: 1000px; height: clamp(140px, 40vw, 185px); cursor: pointer; flex-shrink: 0; }
+        .study-card-inner { width: 100%; height: 100%; transform-style: preserve-3d; transition: transform 0.5s cubic-bezier(0.23,1,0.32,1); }
+        .study-card-wrap.flipped .study-card-inner { transform: rotateY(180deg); }
+        .study-card-face { position: absolute; inset: 0; border-radius: 16px; backface-visibility: hidden; -webkit-backface-visibility: hidden; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; border: 1px solid var(--border); }
+        .study-card-front { background: var(--surface2); }
+        .study-card-back-known { background: linear-gradient(145deg, #1a3d2c, #0f2018); border-color: #2a5c3d !important; transform: rotateY(180deg); }
+        .study-card-back-known .study-label { color: #2a6b40; }
+        .study-card-back-nope  { background: linear-gradient(145deg, #3d1010, #200a0a); border-color: #6b2020 !important; transform: rotateY(180deg); }
+        .study-card-back-nope  .study-label { color: #8b3030; }
+        .study-card-word { font-size: clamp(16px, 4.5vw, 23px); font-weight: 700; text-align: center; letter-spacing: -0.5px; }
+        .study-card-hint { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--text3); margin-top: 10px; letter-spacing: 1px; }
+        .study-label { font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--text3); margin-bottom: 10px; }
+
+        .study-progress-track { height: 3px; background: var(--border); border-radius: 99px; overflow: hidden; flex-shrink: 0; }
+        .study-progress-fill { height: 100%; border-radius: 99px; transition: width 0.4s cubic-bezier(0.23,1,0.32,1); }
+        .fill-green { background: linear-gradient(90deg, var(--green), #7dffc0); }
+        .fill-red   { background: linear-gradient(90deg, var(--red),   #ff9090); }
+
+        .study-nav { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-shrink: 0; }
+        .study-counter { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--text2); text-align: center; flex: 1; }
+
+        .study-actions { display: flex; gap: 8px; flex-shrink: 0; }
+        .btn-study { flex: 1; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--border2); background: transparent; font-family: 'Syne', sans-serif; font-size: 11px; font-weight: 700; cursor: pointer; transition: all 0.15s; color: var(--text2); text-align: center; }
+        .btn-study:active { transform: scale(0.93); }
+        .btn-study.to-known { border-color: var(--green); color: var(--green); }
+        .btn-study.to-known:active { background: var(--green-dim); }
+        .btn-study.to-nope  { border-color: var(--red);   color: var(--red); }
+        .btn-study.to-nope:active  { background: var(--red-dim); }
+        .btn-study.remove { color: var(--text3); }
+        .btn-study.remove:active { background: var(--surface2); }
+
+        /* List pane */
+        .list-pane { overflow-y: auto; padding: 14px 16px; gap: 8px; }
+        .list-pane::-webkit-scrollbar { width: 3px; }
+        .list-pane::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 99px; }
+        .modal-list-item { border-radius: 13px; padding: 12px 14px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .modal-list-item.green-item { background: #0f1f17; border: 1px solid #2a5c3d; }
+        .modal-list-item.red-item   { background: #1f0f0f; border: 1px solid #5c1a1a; }
+        .modal-item-en { font-size: 14px; font-weight: 600; }
+        .modal-item-pl { font-size: 11px; color: var(--text2); margin-top: 2px; font-family: 'DM Mono', monospace; }
+        .btn-remove-item { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--text3); background: transparent; border: 1px solid var(--border); border-radius: 8px; padding: 5px 10px; cursor: pointer; flex-shrink: 0; margin-left: 10px; }
+        .btn-remove-item:active { background: var(--surface2); }
+
+        /* Toast */
+        .toast { position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(80px); background: var(--surface2); border: 1px solid var(--border2); border-radius: 14px; padding: 11px 22px; font-size: 13px; font-family: 'DM Mono', monospace; color: var(--text2); transition: transform 0.35s cubic-bezier(0.23,1,0.32,1); z-index: 400; white-space: nowrap; }
+        .toast.show { transform: translateX(-50%) translateY(0); }
+    </style>
+</head>
+<body>
+<div class="app">
+
+    <div class="header">
+        <div class="header-left">
+            <h1>Fiszki</h1>
+            <p>EN → PL &nbsp;·&nbsp; <span id="total-lbl"></span> słówek</p>
+        </div>
+        <div class="header-btns">
+            <div class="btn-icon" onclick="shuffleCards()">⇄</div>
+            <div class="btn-icon" onclick="toggleList()">☰</div>
+        </div>
+    </div>
+
+    <div class="card-wrap" id="card-wrap" onclick="flipCard()">
+        <div class="card-inner">
+            <div class="card-face card-front-face">
+                <div class="card-label">Angielski</div>
+                <div class="card-word" id="front-text"></div>
+                <div class="card-hint">dotknij aby odwrócić</div>
+            </div>
+            <div class="card-face card-back-face">
+                <div class="card-label">Polski</div>
+                <div class="card-word" id="back-text"></div>
+            </div>
+        </div>
+        <div class="card-stripe"></div>
+    </div>
+
+    <div class="controls">
+        <div class="btn-nav" onclick="prevCard()">←</div>
+        <div class="controls-center">
+            <div class="counter"><span id="cur">1</span> / <span id="tot"></span></div>
+            <div class="action-btns">
+                <div class="btn-action notknown" id="nope-btn"  onclick="markNope()">✗ Nie umiem</div>
+                <div class="btn-action known"    id="known-btn" onclick="markKnown()">✓ Umiem</div>
+            </div>
+        </div>
+        <div class="btn-nav" onclick="nextCard()">→</div>
+    </div>
+
+    <div class="progress-track"><div class="progress-fill" id="progress"></div></div>
+
+    <div class="stats">
+        <div class="stat clickable" onclick="openModal('known')">
+            <div class="stat-val green" id="known-count">0</div>
+            <div class="stat-lbl">Umiem</div>
+            <div class="stat-tap">kliknij ↗</div>
+        </div>
+        <div class="stat clickable" onclick="openModal('nope')">
+            <div class="stat-val red" id="nope-count">0</div>
+            <div class="stat-lbl">Nie umiem</div>
+            <div class="stat-tap">kliknij ↗</div>
+        </div>
+        <div class="stat">
+            <div class="stat-val purple" id="reviewed-count">0</div>
+            <div class="stat-lbl">Przejrzano</div>
+        </div>
+    </div>
+
+    <div class="list-section" id="list-section">
+        <div class="list-header">Wszystkie słówka</div>
+        <div class="vocab-list" id="vocab-list"></div>
+    </div>
+</div>
+
+<!-- Modal -->
+<div class="modal-overlay" id="main-modal" onclick="handleOverlayClick(event)">
+    <div class="modal">
+        <div class="modal-header">
+            <div>
+                <div class="modal-title" id="modal-title"></div>
+                <div class="modal-subtitle" id="modal-subtitle"></div>
+            </div>
+            <div class="modal-close" onclick="closeModal()">✕</div>
+        </div>
+        <div class="modal-tabs">
+            <div class="modal-tab active" id="tab-cards" onclick="switchTab('cards')">Fiszki</div>
+            <div class="modal-tab"        id="tab-list"  onclick="switchTab('list')">Lista</div>
+        </div>
+        <div class="modal-body">
+            <div class="tab-pane study-pane active" id="pane-cards">
+                <div id="study-empty" class="study-empty"></div>
+                <div id="study-content" style="display:none;flex-direction:column;gap:14px">
+                    <div class="study-card-wrap" id="study-card-wrap" onclick="flipStudyCard()">
+                        <div class="study-card-inner">
+                            <div class="study-card-face study-card-front">
+                                <div class="study-label">Angielski</div>
+                                <div class="study-card-word" id="study-front"></div>
+                                <div class="study-card-hint">dotknij aby odwrócić</div>
+                            </div>
+                            <div class="study-card-face" id="study-card-back">
+                                <div class="study-label">Polski</div>
+                                <div class="study-card-word" id="study-back"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="study-progress-track">
+                        <div class="study-progress-fill" id="study-progress"></div>
+                    </div>
+                    <div class="study-nav">
+                        <div class="btn-nav" onclick="prevStudy()" style="width:44px;height:44px;font-size:18px">←</div>
+                        <div class="study-counter"><span id="study-cur">1</span> / <span id="study-tot"></span></div>
+                        <div class="btn-nav" onclick="nextStudy()" style="width:44px;height:44px;font-size:18px">→</div>
+                    </div>
+                    <div class="study-actions" id="study-actions"></div>
+                </div>
+            </div>
+            <div class="tab-pane list-pane" id="pane-list">
+                <div id="modal-list"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+let vocabulary = [
+    {"en":"age","pl":"wiek"},{"en":"birth","pl":"narodziny"},{"en":"date of birth","pl":"data narodzin"},
+    {"en":"place of birth","pl":"miejsce urodzenia"},{"en":"citizen","pl":"obywatel"},
+    {"en":"divorced","pl":"rozwiedziony"},{"en":"female","pl":"kobieta"},{"en":"first name","pl":"imię"},
+    {"en":"job","pl":"zawód"},{"en":"male","pl":"mężczyzna"},{"en":"marital status","pl":"stan cywilny"},
+    {"en":"married","pl":"żonaty, zamężna"},{"en":"nationality","pl":"narodowość"},
+    {"en":"occupation/profession","pl":"zawód wymagający kwalifikacji"},{"en":"personal details","pl":"dane osobowe"},
+    {"en":"sex","pl":"płeć"},{"en":"single","pl":"stanu wolnego"},{"en":"surname","pl":"nazwisko"},
+    {"en":"widow","pl":"wdowa"},{"en":"widower","pl":"wdowiec"},{"en":"casual","pl":"nieformalny/codzienny"},
+    {"en":"elegant/smart","pl":"elegancki"},{"en":"fashionable","pl":"modny"},{"en":"style","pl":"styl"},
+    {"en":"anorak","pl":"kurtka przeciwdeszczowa"},{"en":"blouse","pl":"bluzka"},
+    {"en":"boxer shorts","pl":"bokserki"},{"en":"bra","pl":"stanik"},{"en":"clothes","pl":"ubrania"},
+    {"en":"coat","pl":"płaszcz"},{"en":"dress","pl":"sukienka"},{"en":"hooded sweatshirt","pl":"bluza z kapturem"},
+    {"en":"jacket","pl":"marynarka, żakiet, kurtka"},{"en":"jeans","pl":"dżinsy"},{"en":"jumper","pl":"sweter"},
+    {"en":"pants","pl":"majtki, spodnie"},{"en":"pullover","pl":"pulower"},{"en":"pyjamas","pl":"piżama"},
+    {"en":"shirt","pl":"koszula"},{"en":"shorts","pl":"szorty"},{"en":"skirt","pl":"spódnica"},
+    {"en":"sock","pl":"skarpetka"},{"en":"suit","pl":"garnitur"},{"en":"sweater","pl":"sweter"},
+    {"en":"swimming trunks","pl":"kąpielówki"},{"en":"swimsuit","pl":"kostium kąpielowy"},
+    {"en":"T-shirt","pl":"podkoszulka"},{"en":"tie","pl":"krawat"},{"en":"tights","pl":"rajstopy"},
+    {"en":"top","pl":"top"},{"en":"tracksuit","pl":"dres"},{"en":"trousers","pl":"spodnie"},
+    {"en":"underpants","pl":"slipy"},{"en":"underwear","pl":"bielizna"},{"en":"uniform","pl":"mundur"},
+    {"en":"school uniform","pl":"mundurek szkolny"},{"en":"accessories","pl":"akcesoria"},
+    {"en":"baseball cap","pl":"czapka z daszkiem"},{"en":"belt","pl":"pasek"},{"en":"boots","pl":"kozaki"},
+    {"en":"briefcase","pl":"teczka/aktówka"},{"en":"flat shoes","pl":"buty na płaskim obcasie"},
+    {"en":"glasses","pl":"okulary"},{"en":"gloves","pl":"rękawiczki"},{"en":"handbag","pl":"torebka"},
+    {"en":"hat","pl":"kapelusz"},{"en":"high heels","pl":"buty na wysokim obcasie"},
+    {"en":"jewellery","pl":"biżuteria"},{"en":"sandals","pl":"sandały"},{"en":"scarf","pl":"szalik/apaszka"},
+    {"en":"shoes","pl":"buty"},{"en":"trainers","pl":"buty sportowe"},{"en":"woolly hat","pl":"czapka zimowa"},
+    {"en":"baggy","pl":"luźny, obszerny"},{"en":"checked","pl":"w kratę"},{"en":"denim","pl":"dżinsowy"},
+    {"en":"knitted","pl":"zrobiony na drutach"},{"en":"leather","pl":"skórzany"},
+    {"en":"lightweight","pl":"lekki"},{"en":"sleeveless","pl":"bez rękawów"},{"en":"striped","pl":"w paski"},
+    {"en":"tight","pl":"obcisły"},{"en":"waterproof","pl":"wodoodporny/nieprzemakalny"},
+    {"en":"dress","pl":"ubierać się"},{"en":"fit","pl":"pasować (pod względem rozmiaru)"},
+    {"en":"match","pl":"pasować (pod względem koloru, wzrostu)"},{"en":"suit","pl":"pasować (do osoby, jej stylu)"},
+    {"en":"wear","pl":"nosić"},{"en":"dress up","pl":"ubrać się elegancko"},
+    {"en":"dress up as sb/sth","pl":"przebrać się za kogoś/coś"},{"en":"get dressed","pl":"ubrać się"},
+    {"en":"put on","pl":"założyć coś na siebie"},{"en":"take off","pl":"zdjąć z siebie, rozebrać się"},
+    {"en":"ankle","pl":"kostka"},{"en":"arm","pl":"ręka"},{"en":"back","pl":"plecy"},
+    {"en":"body","pl":"ciało"},{"en":"bottom","pl":"pupa"},{"en":"chest","pl":"klatka piersiowa"},
+    {"en":"elbow","pl":"łokieć"},{"en":"finger","pl":"palec (u dłoni)"},{"en":"fist","pl":"pięść"},
+    {"en":"foot","pl":"stopa"},{"en":"feet","pl":"stopy"},{"en":"hand","pl":"ręka"},{"en":"head","pl":"głowa"},
+    {"en":"heel","pl":"pięta"},{"en":"hip","pl":"biodro"},{"en":"knee","pl":"kolano"},{"en":"leg","pl":"noga"},
+    {"en":"neck","pl":"szyja"},{"en":"shoulder","pl":"ramię"},{"en":"skin","pl":"skóra"},
+    {"en":"stomach","pl":"brzuch"},{"en":"thigh","pl":"udo"},{"en":"thumb","pl":"kciuk"},
+    {"en":"toe","pl":"palec (u stopy)"},{"en":"waist","pl":"talia"},{"en":"wrist","pl":"nadgarstek"},
+    {"en":"cheek","pl":"policzek"},{"en":"chin","pl":"podbródek"},{"en":"ear","pl":"ucho"},
+    {"en":"eye","pl":"oko"},{"en":"eyelash","pl":"rzęsa"},{"en":"face","pl":"twarz"},
+    {"en":"forehead","pl":"czoło"},{"en":"jaw","pl":"szczęka"},{"en":"lip","pl":"warga"},
+    {"en":"mouth","pl":"usta"},{"en":"nose","pl":"nos"},{"en":"throat","pl":"gardło"},
+    {"en":"tongue","pl":"język"},{"en":"tooth","pl":"ząb"},{"en":"teeth","pl":"zęby"},
+    {"en":"attractive","pl":"atrakcyjny"},{"en":"beautiful","pl":"piękny"},
+    {"en":"good-looking","pl":"przystojny, atrakcyjny"},{"en":"gorgeous","pl":"olśniewający"},
+    {"en":"handsome","pl":"przystojny"},{"en":"pretty","pl":"ładny"},{"en":"scruffy","pl":"niechlujny"},
+    {"en":"ugly","pl":"brzydki"},{"en":"child","pl":"dziecko"},{"en":"children","pl":"dzieci"},
+    {"en":"elderly","pl":"w starszym wieku"},{"en":"in his/her early twenties","pl":"po dwudziestce"},
+    {"en":"in his/her late thirties","pl":"przed czterdziestką"},
+    {"en":"in his/her mid fifties","pl":"około pięćdziesięciu pięciu lat"},
+    {"en":"middle-aged","pl":"w średnim wieku"},{"en":"old","pl":"stary"},
+    {"en":"teenager","pl":"nastolatek"},{"en":"young","pl":"młody"},{"en":"height","pl":"wzrost"},
+    {"en":"medium height","pl":"średniego wzrostu"},{"en":"short","pl":"niski"},{"en":"tall","pl":"wysoki"},
+    {"en":"build","pl":"budowa ciała"},{"en":"athletic","pl":"sportowa sylwetka"},{"en":"fat","pl":"gruby"},
+    {"en":"overweight","pl":"z nadwagą"},{"en":"plump","pl":"puszysty"},{"en":"skinny/thin","pl":"chudy"},
+    {"en":"slim","pl":"szczupły"},{"en":"well built","pl":"dobrze zbudowany"},{"en":"bald","pl":"łysy"},
+    {"en":"curly hair","pl":"kręcone"},{"en":"dark hair","pl":"ciemne"},{"en":"dyed hair","pl":"farbowane"},
+    {"en":"fair hair","pl":"jasne"},{"en":"fringe","pl":"grzywka"},{"en":"ginger/red","pl":"rude"},
+    {"en":"grey/white","pl":"siwe"},{"en":"hair","pl":"włosy"},{"en":"ponytail","pl":"kucyk"},
+    {"en":"shoulder-length","pl":"do ramion"},{"en":"spiky hair","pl":"nastroszony"},
+    {"en":"straight hair","pl":"proste"},{"en":"wavy hair","pl":"faliste"},{"en":"appearance","pl":"wygląd"},
+    {"en":"beard","pl":"broda"},{"en":"complexion","pl":"cera"},
+    {"en":"pale (complexion)","pl":"blada cera"},{"en":"smooth (complexion)","pl":"gładka cera"},
+    {"en":"tanned (complexion)","pl":"opalona cera"},{"en":"eyeliner","pl":"kredka do oczu"},
+    {"en":"freckles","pl":"piegi"},{"en":"haircut","pl":"fryzura"},{"en":"lip gloss","pl":"błyszczyk do ust"},
+    {"en":"make-up","pl":"makijaż"},{"en":"mascara","pl":"tusz do rzęs"},{"en":"mustache","pl":"wąsy"},
+    {"en":"scar","pl":"blizna"},{"en":"tattoo","pl":"tatuaż"},{"en":"wrinkles","pl":"zmarszczki"},
+    {"en":"aggressive","pl":"agresywny"},{"en":"ambitious","pl":"ambitny"},
+    {"en":"arrogant","pl":"arogancki/zarozumiały"},{"en":"boring","pl":"nudny"},
+    {"en":"bossy","pl":"dominujący/apodyktyczny"},{"en":"brave","pl":"odważny"},{"en":"bright","pl":"bystry"},
+    {"en":"calm","pl":"opanowany"},{"en":"careful","pl":"ostrożny"},{"en":"careless","pl":"nieostrożny"},
+    {"en":"caring","pl":"troskliwy"},{"en":"cheerful","pl":"radosny"},
+    {"en":"clever","pl":"zdolny, inteligentny, sprytny"},{"en":"compassionate","pl":"współczujący"},
+    {"en":"cruel","pl":"okrutny"},{"en":"dull","pl":"nieciekawy"},
+    {"en":"easy-going","pl":"łatwy w obejściu, wyluzowany"},{"en":"friendly","pl":"przyjazny"},
+    {"en":"unfriendly","pl":"nieprzyjazny"},{"en":"funny","pl":"zabawny"},
+    {"en":"generous","pl":"szczodry, wspaniałomyślny"},{"en":"gentle","pl":"łagodny"},
+    {"en":"hard-working","pl":"pracowity"},{"en":"helpful","pl":"uczynny, pomocny"},
+    {"en":"honest","pl":"uczciwy"},{"en":"dishonest","pl":"nieuczciwy"},{"en":"insecure","pl":"niepewny"},
+    {"en":"intelligent","pl":"inteligentny"},{"en":"kind","pl":"miły, uprzejmy"},
+    {"en":"unkind","pl":"niemiły, nieuprzejmy"},{"en":"lazy","pl":"leniwy"},{"en":"lively","pl":"żywiołowy"},
+    {"en":"loyal","pl":"lojalny"},{"en":"disloyal","pl":"nielojalny"},{"en":"mature","pl":"dojrzały"},
+    {"en":"immature","pl":"niedojrzały"},{"en":"mean","pl":"skąpy"},{"en":"messy","pl":"nieporządny"},
+    {"en":"modest","pl":"skromny"},{"en":"immodest","pl":"nieskromny"},
+    {"en":"narrow-minded","pl":"ograniczony"},{"en":"nasty","pl":"wstrętny"},{"en":"neat","pl":"staranny"},
+    {"en":"outgoing","pl":"otwarty, towarzyski"},{"en":"patient","pl":"cierpliwy"},
+    {"en":"impatient","pl":"niecierpliwy"},{"en":"personality","pl":"osobowość"},
+    {"en":"polite","pl":"uprzejmy"},{"en":"impolite","pl":"nieuprzejmy"},{"en":"quiet","pl":"cichy"},
+    {"en":"rebellious","pl":"buntowniczy"},{"en":"reliable","pl":"godny zaufania"},
+    {"en":"reserved","pl":"powściągliwy"},{"en":"responsible","pl":"odpowiedzialny"},
+    {"en":"irresponsible","pl":"nieodpowiedzialny"},{"en":"rude","pl":"niegrzeczny"},
+    {"en":"self-confident","pl":"pewny siebie"},{"en":"selfish","pl":"samolubny"},
+    {"en":"selfless","pl":"bezinteresowny"},{"en":"sense of humour","pl":"poczucie humoru"},
+    {"en":"sensible","pl":"rozsądny"},{"en":"sensitive","pl":"wrażliwy"},
+    {"en":"insensitive","pl":"niewrażliwy"},{"en":"shallow","pl":"płytki"},{"en":"shy","pl":"nieśmiały"},
+    {"en":"sociable","pl":"towarzyski"},{"en":"stubborn","pl":"uparty"},{"en":"stupid","pl":"głupi"},
+    {"en":"talkative","pl":"gadatliwy"},{"en":"tolerant","pl":"tolerancyjny"},
+    {"en":"intolerant","pl":"nietolerancyjny"},{"en":"vain","pl":"próżny"},{"en":"wise","pl":"mądry"},
+    {"en":"bored","pl":"znudzony"},{"en":"depressed","pl":"załamany"},
+    {"en":"disappointed","pl":"rozczarowany"},{"en":"embarrassed","pl":"zażenowany, zawstydzony"},
+    {"en":"excited","pl":"podekscytowany"},{"en":"frightened","pl":"przerażony"},
+    {"en":"frustrated","pl":"sfrustrowany"},{"en":"miserable","pl":"nieszczęśliwy"},
+    {"en":"moved","pl":"wzruszony"},{"en":"relaxed","pl":"odprężony"},
+    {"en":"stressed out","pl":"zestresowany"},{"en":"worried","pl":"zmartwiony"},
+    {"en":"admire","pl":"podziwiać"},{"en":"adore","pl":"uwielbiać"},{"en":"detest","pl":"nie znosić"},
+    {"en":"dislike","pl":"nie lubić"},{"en":"hate","pl":"nienawidzić"},{"en":"like","pl":"lubić"},
+    {"en":"reject","pl":"odrzucać"},{"en":"respect","pl":"szanować"},
+    {"en":"angry with sb","pl":"zły na kogoś"},{"en":"be afraid of sb/sth","pl":"bać się kogoś/czegoś"},
+    {"en":"be attracted to sb","pl":"czuć pociąg do kogoś"},
+    {"en":"be fed up with sb/sth","pl":"mieć dość kogoś/czegoś"},
+    {"en":"be fond of sb/sth","pl":"lubić kogoś/coś, być do kogoś/czegoś przywiązanym"},
+    {"en":"be keen on sth","pl":"bardzo coś lubić / być czymś bardzo zainteresowanym"},
+    {"en":"can't stand sb/sth","pl":"nie cierpieć kogoś/czegoś"},
+    {"en":"change one's mind","pl":"zmienić zdanie"},
+    {"en":"cheer up","pl":"rozweselić (kogoś) / poprawić humor"},
+    {"en":"fall in love with sb","pl":"zakochać się w kimś"},
+    {"en":"in a good mood","pl":"w dobrym nastroju"},
+    {"en":"laugh at sb/sth","pl":"śmiać się z kogoś/czegoś"},
+    {"en":"look down on sb","pl":"patrzeć na kogoś z góry / pogardzać kimś"},
+    {"en":"look up to sb","pl":"podziwiać kogoś / brać kogoś za wzór"},
+    {"en":"lose one's temper","pl":"stracić panowanie nad sobą"},
+    {"en":"my heart is pounding","pl":"serce mi wali / bije mocno"},
+    {"en":"my palms are sweating","pl":"dłonie mi się pocą"}
+]
+
+/* ── State ── */
+let currentIndex = 0, isFlipped = false
+let knownCards = new Set(), nopeCards = new Set(), reviewed = new Set()
+let modalMode = 'known'
+let studyList = [], studyIndex = 0, studyFlipped = false
+
+/* ── Main render ── */
+function render() {
+    const card = vocabulary[currentIndex]
+    document.getElementById('front-text').textContent = card.en
+    document.getElementById('back-text').textContent  = card.pl
+    document.getElementById('cur').textContent  = currentIndex + 1
+    document.getElementById('tot').textContent  = vocabulary.length
+    document.getElementById('total-lbl').textContent = vocabulary.length
+
+    const wrap = document.getElementById('card-wrap')
+    wrap.classList.remove('flipped'); isFlipped = false
+
+    const isK = knownCards.has(card.en), isN = nopeCards.has(card.en)
+    wrap.classList.toggle('known',    isK)
+    wrap.classList.toggle('notknown', isN && !isK)
+
+    document.getElementById('known-btn').classList.toggle('active', isK)
+    document.getElementById('nope-btn').classList.toggle('active',  isN && !isK)
+
+    updateProgress(); updateStats()
+}
+
+function flipCard() {
+    isFlipped = !isFlipped
+    document.getElementById('card-wrap').classList.toggle('flipped', isFlipped)
+    reviewed.add(vocabulary[currentIndex].en); updateStats()
+}
+
+function nextCard() { currentIndex = (currentIndex + 1) % vocabulary.length; render() }
+function prevCard() { currentIndex = (currentIndex - 1 + vocabulary.length) % vocabulary.length; render() }
+
+function markKnown() {
+    const key = vocabulary[currentIndex].en
+    if (knownCards.has(key)) knownCards.delete(key)
+    else { knownCards.add(key); nopeCards.delete(key) }
+    render()
+}
+
+function markNope() {
+    const key = vocabulary[currentIndex].en
+    if (nopeCards.has(key)) nopeCards.delete(key)
+    else { nopeCards.add(key); knownCards.delete(key) }
+    render()
+}
+
+function updateProgress() {
+    document.getElementById('progress').style.width = ((currentIndex + 1) / vocabulary.length * 100) + '%'
+}
+
+function updateStats() {
+    document.getElementById('known-count').textContent    = knownCards.size
+    document.getElementById('nope-count').textContent     = nopeCards.size
+    document.getElementById('reviewed-count').textContent = reviewed.size
+}
+
+/* ── Shuffle ── */
+function shuffleCards() {
+    for (let i = vocabulary.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [vocabulary[i], vocabulary[j]] = [vocabulary[j], vocabulary[i]]
+    }
+    currentIndex = 0; render(); showToast('Przetasowano ⇄')
+}
+
+/* ── All-words list ── */
+function toggleList() {
+    const s = document.getElementById('list-section')
+    s.classList.toggle('open')
+    if (s.classList.contains('open')) renderAllList()
+}
+
+function renderAllList() {
+    const c = document.getElementById('vocab-list')
+    c.innerHTML = ''
+    vocabulary.forEach((item, i) => {
+        const isK = knownCards.has(item.en), isN = nopeCards.has(item.en)
+        const d = document.createElement('div')
+        d.className = 'vocab-item' + (isK ? ' known' : isN ? ' notknown' : '')
+        d.innerHTML = `
+            <div>
+                <div class="vocab-en">${item.en}</div>
+                <div class="vocab-pl">${item.pl}</div>
+            </div>
+            <div class="vocab-item-right">
+                ${isK ? '<span class="vocab-tag known">✓ umiem</span>' : ''}
+                ${isN && !isK ? '<span class="vocab-tag notknown">✗ nie umiem</span>' : ''}
+                <div class="go-btn" onclick="goTo(${i});event.stopPropagation()">idź →</div>
+            </div>`
+        c.appendChild(d)
+    })
+}
+
+function goTo(i) {
+    currentIndex = i
+    document.getElementById('list-section').classList.remove('open')
+    render()
+}
+
+/* ── Modal ── */
+function openModal(mode) {
+    modalMode = mode
+    const isKnown = mode === 'known'
+    studyList = vocabulary.filter(v => isKnown ? knownCards.has(v.en) : nopeCards.has(v.en))
+    studyIndex = 0; studyFlipped = false
+
+    const titleEl = document.getElementById('modal-title')
+    titleEl.textContent = isKnown ? '✓ Umiem' : '✗ Nie umiem'
+    titleEl.className   = 'modal-title ' + (isKnown ? 'green' : 'red')
+
+    document.getElementById('study-card-back').className =
+        'study-card-face ' + (isKnown ? 'study-card-back-known' : 'study-card-back-nope')
+
+    document.getElementById('study-progress').className =
+        'study-progress-fill ' + (isKnown ? 'fill-green' : 'fill-red')
+
+    const actEl = document.getElementById('study-actions')
+    actEl.innerHTML = isKnown
+        ? `<div class="btn-study to-nope"  onclick="moveStudyCard('nope')">✗ Przenieś do "Nie umiem"</div>
+           <div class="btn-study remove"   onclick="removeStudyCard()">✕ Usuń ocenę</div>`
+        : `<div class="btn-study to-known" onclick="moveStudyCard('known')">✓ Przenieś do "Umiem"</div>
+           <div class="btn-study remove"   onclick="removeStudyCard()">✕ Usuń ocenę</div>`
+
+    switchTab('cards')
+    document.getElementById('main-modal').classList.add('open')
+    renderStudy(); renderModalList()
+}
+
+function closeModal() {
+    document.getElementById('main-modal').classList.remove('open')
+    updateStats()
+    if (document.getElementById('list-section').classList.contains('open')) renderAllList()
+}
+
+function handleOverlayClick(e) {
+    if (e.target === document.getElementById('main-modal')) closeModal()
+}
+
+function switchTab(name) {
+    document.querySelectorAll('.modal-tab').forEach(t => t.classList.remove('active'))
+    document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'))
+    document.getElementById('tab-' + name).classList.add('active')
+    document.getElementById('pane-' + name).classList.add('active')
+}
+
+function renderStudy() {
+    const empty   = document.getElementById('study-empty')
+    const content = document.getElementById('study-content')
+    const emptyMsg = modalMode === 'known'
+        ? 'Brak słówek w kategorii "Umiem".\n\nNaciśnij ✓ Umiem na fiszce\naby tu dodać słówko.'
+        : 'Brak słówek w kategorii "Nie umiem".\n\nNaciśnij ✗ Nie umiem na fiszce\naby tu dodać słówko.'
+
+    document.getElementById('modal-subtitle').textContent = studyList.length + ' słówek'
+
+    if (!studyList.length) {
+        empty.style.display = 'block'; empty.textContent = emptyMsg
+        content.style.display = 'none'; return
+    }
+    empty.style.display = 'none'; content.style.display = 'flex'
+
+    const card = studyList[studyIndex]
+    document.getElementById('study-front').textContent = card.en
+    document.getElementById('study-back').textContent  = card.pl
+    document.getElementById('study-cur').textContent   = studyIndex + 1
+    document.getElementById('study-tot').textContent   = studyList.length
+    document.getElementById('study-card-wrap').classList.remove('flipped')
+    studyFlipped = false
+    document.getElementById('study-progress').style.width =
+        ((studyIndex + 1) / studyList.length * 100) + '%'
+}
+
+function flipStudyCard() {
+    studyFlipped = !studyFlipped
+    document.getElementById('study-card-wrap').classList.toggle('flipped', studyFlipped)
+}
+
+function nextStudy() { if (!studyList.length) return; studyIndex = (studyIndex + 1) % studyList.length; renderStudy() }
+function prevStudy() { if (!studyList.length) return; studyIndex = (studyIndex - 1 + studyList.length) % studyList.length; renderStudy() }
+
+function removeStudyCard() {
+    if (!studyList.length) return
+    const key = studyList[studyIndex].en
+    knownCards.delete(key); nopeCards.delete(key)
+    studyList.splice(studyIndex, 1)
+    if (studyIndex >= studyList.length) studyIndex = Math.max(0, studyList.length - 1)
+    renderStudy(); renderModalList(); showToast('Usunięto ocenę')
+}
+
+function moveStudyCard(target) {
+    if (!studyList.length) return
+    const key = studyList[studyIndex].en
+    knownCards.delete(key); nopeCards.delete(key)
+    if (target === 'known') knownCards.add(key); else nopeCards.add(key)
+    studyList.splice(studyIndex, 1)
+    if (studyIndex >= studyList.length) studyIndex = Math.max(0, studyList.length - 1)
+    renderStudy(); renderModalList()
+    showToast(target === 'known' ? 'Przeniesiono do "Umiem" ✓' : 'Przeniesiono do "Nie umiem" ✗')
+}
+
+function renderModalList() {
+    const c = document.getElementById('modal-list')
+    c.innerHTML = ''
+    if (!studyList.length) {
+        c.innerHTML = '<div class="study-empty">Brak słówek.</div>'; return
+    }
+    const cls = modalMode === 'known' ? 'green-item' : 'red-item'
+    studyList.forEach((item, i) => {
+        const d = document.createElement('div')
+        d.className = 'modal-list-item ' + cls
+        d.innerHTML = `
+            <div>
+                <div class="modal-item-en">${item.en}</div>
+                <div class="modal-item-pl">${item.pl}</div>
+            </div>
+            <div class="btn-remove-item" onclick="removeAt(${i})">✕</div>`
+        c.appendChild(d)
+    })
+}
+
+function removeAt(i) {
+    const key = studyList[i].en
+    knownCards.delete(key); nopeCards.delete(key)
+    studyList.splice(i, 1)
+    if (studyIndex >= studyList.length) studyIndex = Math.max(0, studyList.length - 1)
+    renderModalList(); renderStudy()
+}
+
+/* ── Toast ── */
+function showToast(msg) {
+    const t = document.getElementById('toast')
+    t.textContent = msg; t.classList.add('show')
+    clearTimeout(t._t)
+    t._t = setTimeout(() => t.classList.remove('show'), 2200)
+}
+
+/* ── Keyboard ── */
+document.addEventListener('keydown', e => {
+    const modalOpen = document.getElementById('main-modal').classList.contains('open')
+    if (modalOpen) {
+        if (e.key === 'Escape') { closeModal(); return }
+        if (e.key === ' ' || e.key === 'ArrowRight') { e.preventDefault(); studyFlipped ? nextStudy() : flipStudyCard() }
+        if (e.key === 'ArrowLeft') prevStudy()
+        return
+    }
+    if (e.key === ' ' || e.key === 'ArrowRight') { e.preventDefault(); isFlipped ? nextCard() : flipCard() }
+    if (e.key === 'ArrowLeft') prevCard()
+    if (e.key === 'Enter') flipCard()
+    if (e.key === 'u' || e.key === 'U') markKnown()
+    if (e.key === 'n' || e.key === 'N') markNope()
+})
+
+/* ── Touch swipe ── */
+let touchStartX = 0
+document.addEventListener('touchstart', e => { touchStartX = e.touches[0].clientX }, { passive: true })
+document.addEventListener('touchend', e => {
+    const dx = e.changedTouches[0].clientX - touchStartX
+    const modalOpen = document.getElementById('main-modal').classList.contains('open')
+    if (Math.abs(dx) > 55) {
+        if (modalOpen) { dx < 0 ? nextStudy() : prevStudy() }
+        else if (!document.getElementById('list-section').classList.contains('open')) {
+            dx < 0 ? nextCard() : prevCard()
+        }
+    }
+}, { passive: true })
+
+render()
+</script>
+</body>
+</html>
